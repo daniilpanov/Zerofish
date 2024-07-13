@@ -1,11 +1,3 @@
-#! /usr/bin/env python2.7
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-from six.moves import xrange
-
 import os
 import sys
 
@@ -14,20 +6,20 @@ import tensorflow as tf
 
 import matplotlib.pyplot as plt
 
-import adapter
 import model
 import model_fn
 import input_fn
 
-def visualize_filter (x, y):
+
+def visualize_filter(x, y):
     # Subtract biases to get proper value scale for each output channel
-    x -= y/x.shape[-1]
+    x -= y / x.shape[-1]
 
     # Normalize to [0, 1]
     x_min = x.min()
     x_max = x.max()
 
-    x = (x-x_min)/(x_max-x_min)
+    x = (x - x_min) / (x_max - x_min)
 
     # HWCN -> CNHW
     x = np.transpose(x, [2, 3, 0, 1])
@@ -38,27 +30,29 @@ def visualize_filter (x, y):
     x = np.pad(x, ((0, 0), (0, 0), (1, 1), (1, 1)), mode='constant')
 
     x = np.transpose(x, [0, 2, 1, 3])
-    x = np.reshape(x, [(h+2)*m, (w+2)*n])
+    x = np.reshape(x, [(h + 2) * m, (w + 2) * n])
 
     # Show images to screen
     plt.imshow(x, cmap='hot')
 
-def name_filter (name, suffix):
+
+def name_filter(name, suffix):
     return (('conv' in name) or ('logits' in name)) and suffix in name
 
-def main (FLAGS, _):
+
+def main(FLAGS, _):
     # Initialize all variables
     if not os.path.exists(FLAGS.model_dir):
         print('No model at {}'.format(FLAGS.model_dir), file=sys.stderr)
         return 1
 
-    builder = model.ModelSpecBuilder (
+    builder = model.ModelSpecBuilder(
         model_fn=model_fn.model_fn,
         model_dir=FLAGS.model_dir
     )
 
-    spec = builder.build_inference_spec (
-        input_fn=input_fn.placeholder_input_fn (
+    spec = builder.build_inference_spec(
+        input_fn=input_fn.placeholder_input_fn(
             feature_names=('image',),
             feature_shapes=(FLAGS.input_shape,),
             feature_dtypes=(tf.int8,),
@@ -69,9 +63,9 @@ def main (FLAGS, _):
         ),
 
         params={
-            'filters' : FLAGS.filters,
-            'modules' : FLAGS.modules,
-            'n_classes' : FLAGS.n_classes
+            'filters': FLAGS.filters,
+            'modules': FLAGS.modules,
+            'n_classes': FLAGS.n_classes
         }
     )
 
@@ -79,9 +73,9 @@ def main (FLAGS, _):
     tvars = spec.graph.get_collection(tf.GraphKeys.TRAINABLE_VARIABLES)
 
     # Extract only the convolutional filters
-    filters = filter(lambda v : name_filter(v.name, 'kernel'), tvars)
-    biases = filter(lambda v : name_filter(v.name, 'bias'), tvars)
-    names = map(lambda v : v.name, filters)
+    filters = filter(lambda v: name_filter(v.name, 'kernel'), tvars)
+    biases = filter(lambda v: name_filter(v.name, 'bias'), tvars)
+    names = map(lambda v: v.name, filters)
 
     filters, biases = spec.session.run([filters, biases])
 
@@ -97,6 +91,7 @@ def main (FLAGS, _):
         # break
 
     return 0
+
 
 if __name__ == '__main__':
     import config

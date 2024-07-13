@@ -1,18 +1,11 @@
-#! /usr/bin/env python2.7
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-from six.moves import xrange
-
 import numpy as np
 import tensorflow as tf
 
 import util
 
+
 # Temporary workaround for tf1.3 and down
-def collection_getter (getter, *args, **kwargs):
+def collection_getter(getter, *args, **kwargs):
     """Adds variables to relevant collections."""
     var = getter(*args, **kwargs)
 
@@ -28,7 +21,8 @@ def collection_getter (getter, *args, **kwargs):
 
     return var
 
-def input_module (net, filters, training=False):
+
+def input_module(net, filters, training=False):
     """First layer that interfaces directly with binary feature vectors."""
 
     # 7x7 -> batch norm -> relu
@@ -38,20 +32,21 @@ def input_module (net, filters, training=False):
 
     return net
 
-def residual_module (net, training=False):
+
+def residual_module(net, training=False):
     """Residual module, uses two 3x3 convs and post-activation."""
     filters = int(net.shape.as_list()[-1])
 
     # Along this branch 3x3 -> batch norm -> relu -> 3x3 -> batch norm
     with tf.variable_scope('branch'):
         branch = net
-        branch = tf.layers.conv2d (
+        branch = tf.layers.conv2d(
             branch, filters, (3, 3), (1, 1), padding='SAME', name='conv_3x3_0/conv'
         )
         branch = tf.layers.batch_normalization(branch, training=training, name='conv_3x3_0/norm')
         branch = tf.nn.relu(branch, name='conv_3x3_0/relu')
 
-        branch = tf.layers.conv2d (
+        branch = tf.layers.conv2d(
             branch, filters, (3, 3), (1, 1), padding='SAME', name='conv_3x3_1/conv'
         )
         branch = tf.layers.batch_normalization(branch, training=training, name='conv_3x3_1/norm')
@@ -64,11 +59,12 @@ def residual_module (net, training=False):
 
     return net
 
-def output_module (net, filters, training=False):
+
+def output_module(net, filters, training=False):
     """Final shared layer before two headed output."""
 
     # 1x1 -> batch norm -> relu
-    net = tf.layers.conv2d (
+    net = tf.layers.conv2d(
         net, filters, (1, 1), (1, 1), padding='SAME', name='conv_1x1/conv'
     )
     net = tf.layers.batch_normalization(net, training=training, name='conv_1x1/norm')
@@ -76,13 +72,14 @@ def output_module (net, filters, training=False):
 
     return net
 
-def output_policy (net, n_classes, training=False):
+
+def output_policy(net, n_classes, training=False):
     """Policy head for the network."""
     branch = net
 
     # 1x1 -> flattening
-    branch = tf.layers.conv2d (
-        branch, n_classes//(8*8), (1, 1), (1, 1), padding='SAME', name='logits'
+    branch = tf.layers.conv2d(
+        branch, n_classes // (8 * 8), (1, 1), (1, 1), padding='SAME', name='logits'
     )
 
     dims = np.prod(branch.shape.as_list()[1:])
@@ -90,7 +87,8 @@ def output_policy (net, n_classes, training=False):
 
     return branch
 
-def output_value (net, training=False):
+
+def output_value(net, training=False):
     """Value head for the network."""
     branch = net
 
@@ -103,7 +101,8 @@ def output_value (net, training=False):
 
     return branch
 
-def inference (inputs, filters, modules, n_classes, training=False):
+
+def inference(inputs, filters, modules, n_classes, training=False):
     """Complete inference model."""
     net = inputs
 
@@ -117,13 +116,13 @@ def inference (inputs, filters, modules, n_classes, training=False):
         net = input_module(net, filters, training=training)
 
     # Some amount of residual modules
-    for layer in xrange(modules):
+    for layer in range(modules):
         with tf.variable_scope('residual_{}'.format(layer)):
             net = residual_module(net, training=training)
 
     # Output layer and policy, value heads
     with tf.variable_scope('output'):
-        net = output_module(net, 8*8, training=training)
+        net = output_module(net, 8 * 8, training=training)
 
         with tf.variable_scope('policy'):
             policy = output_policy(net, n_classes, training=training)
@@ -133,7 +132,8 @@ def inference (inputs, filters, modules, n_classes, training=False):
 
     return policy, value
 
-def model_fn (features, labels, mode, params):
+
+def model_fn(features, labels, mode, params):
     # Training flag
     training = (mode == tf.estimator.ModeKeys.TRAIN)
 
@@ -141,12 +141,12 @@ def model_fn (features, labels, mode, params):
     inputs = features['image']
 
     # Get unscaled log probabilities
-    with tf.variable_scope (
+    with tf.variable_scope(
             'inference',
             reuse=params.get('reuse', False),
             custom_getter=collection_getter
     ):
-        policy, value = inference (
+        policy, value = inference(
             inputs,
             filters=params['filters'],
             modules=params['modules'],
@@ -159,7 +159,7 @@ def model_fn (features, labels, mode, params):
         tf.summary.histogram(var.name.split(':')[0] + '_summary', var)
 
     # Specification
-    spec = util.AttrDict (
+    spec = util.AttrDict(
         mode=mode,
         features=features,
         predictions=(policy, value)
@@ -171,18 +171,18 @@ def model_fn (features, labels, mode, params):
 
     with tf.variable_scope('losses'):
         # Value loss
-        value_loss = tf.losses.mean_squared_error (
+        value_loss = tf.losses.mean_squared_error(
             labels=labels['value'], predictions=value,
-            weights=1.0/4.0
+            weights=1.0 / 4.0
         )
 
-        policy_loss = tf.losses.softmax_cross_entropy (
+        policy_loss = tf.losses.softmax_cross_entropy(
             onehot_labels=labels['policy'], logits=policy + features['legal_mask'],
             weights=1.0
         )
 
         # Get l2 regularization loss
-        l2_loss = tf.contrib.layers.apply_regularization (
+        l2_loss = tf.contrib.layers.apply_regularization(
             tf.contrib.layers.l2_regularizer(params['l2_scale'])
         )
         tf.losses.add_loss(l2_loss)
@@ -211,9 +211,9 @@ def model_fn (features, labels, mode, params):
     with tf.variable_scope('train'):
         # Get optimizer function
         optimizer_fn = {
-            'Adam' : tf.train.AdamOptimizer,
-            'RMSProp' : tf.train.RMSPropOptimizer,
-            'GradientDescent' : tf.train.GradientDescentOptimizer
+            'Adam': tf.train.AdamOptimizer,
+            'RMSProp': tf.train.RMSPropOptimizer,
+            'GradientDescent': tf.train.GradientDescentOptimizer
         }[params.get('optimizer', 'Adam')]
 
         optimizer = optimizer_fn(params['learning_rate'])
@@ -224,7 +224,7 @@ def model_fn (features, labels, mode, params):
         # Create train operation
         update_ops = tf.get_collection(tf.GraphKeys.UPDATE_OPS)
         with tf.control_dependencies(update_ops):
-            train_op = optimizer.apply_gradients (
+            train_op = optimizer.apply_gradients(
                 grads_and_tvars,
                 global_step=global_step
             )

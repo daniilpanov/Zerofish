@@ -1,28 +1,12 @@
-#! /usr/bin/env python2.7
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-from six.moves import xrange
-
-import os
-import sys
-
 import chess
 import chess.pgn
 
-import numpy as np
-import tensorflow as tf
-
 import adapter
-import output_fn
 import self_play
 import util
 
-from config import config
 
-def run_game (game):
+def run_game(game):
     # Initialize memory
     actions = []
     policies = []
@@ -56,20 +40,21 @@ def run_game (game):
 
     # Get game winner
     winner, outcome = {
-        '1/2-1/2' : (chess.WHITE, 0.0),
-        '1-0' : (chess.WHITE, 1.0),
-        '0-1' : (chess.BLACK, 1.0)
+        '1/2-1/2': (chess.WHITE, 0.0),
+        '1-0': (chess.WHITE, 1.0),
+        '0-1': (chess.BLACK, 1.0)
     }.get(game.headers['Result'], None)
 
     return actions, policies, indices, outcome, winner
 
-def run_pgn (pgn_file, n_games, data_dir):
+
+def run_pgn(pgn_file, n_games, data_dir):
     games = 0
 
     while n_games == 0 or games < n_games:
         game = chess.pgn.read_game(pgn_file)
         game.headers['Counter'] = games
-        name = '{White}-{Black}-{ECO}-{Date}-{Counter}'.format (
+        name = '{White}-{Black}-{ECO}-{Date}-{Counter}'.format(
             **game.headers
         ).replace(' ', '_')
 
@@ -86,12 +71,14 @@ def run_pgn (pgn_file, n_games, data_dir):
         # 
         games += 1
 
-def main (FLAGS, _):
+
+def main(FLAGS, _):
     # Parse pgn into registry of nodes
     with open(FLAGS.pgn_file, 'r') as in_file:
         run_pgn(in_file, FLAGS.n_games, FLAGS.data_path)
 
     return 0
+
 
 if __name__ == '__main__':
     import argparse
@@ -99,25 +86,25 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
 
-    parser.add_argument (
+    parser.add_argument(
         '--pgn_file', type=str, metavar='pgn',
         required=True,
         help='PGN database to parse.'
     )
 
-    parser.add_argument (
+    parser.add_argument(
         '--data_path', type=str, metavar='dir',
         required=True,
         help='Where to store output data.'
     )
 
-    parser.add_argument (
+    parser.add_argument(
         '--n_games', type=int, metavar='n',
         default=0,
         help='Number of games to parse.'
     )
 
-    parser.add_argument (
+    parser.add_argument(
         '--temperature', type=float, metavar='T',
         default=1.0,
         help='Temperature to use in softcount.'
