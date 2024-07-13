@@ -1,41 +1,35 @@
-#! /usr/bin/env python2.7
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-from six.moves import xrange
-
 import tensorflow as tf
 
 from config import config
 
+
 # Placeholder input function section
-def placeholder_dict (names, shapes, dtypes):
+def placeholder_dict(names, shapes, dtypes):
     placeholders = {}
 
     if names is None:
         return placeholders
 
     for name, shape, dtype in zip(names, shapes, dtypes):
-        placeholders[name] = tf.placeholder (
+        placeholders[name] = tf.placeholder(
             dtype=dtype, shape=(None,) + shape, name=name
         )
 
     return placeholders
 
-def placeholder_input_fn (
+
+def placeholder_input_fn(
         feature_names, feature_shapes, feature_dtypes,
         label_names=None, label_shapes=None, label_dtypes=None
 ):
-    def input_fn ():
-        features = placeholder_dict (
+    def input_fn():
+        features = placeholder_dict(
             feature_names,
             feature_shapes,
             feature_dtypes
         )
 
-        labels = placeholder_dict (
+        labels = placeholder_dict(
             label_names,
             label_shapes,
             label_dtypes
@@ -45,13 +39,14 @@ def placeholder_input_fn (
 
     return input_fn
 
+
 # TFRecords input function section
-def parse_fn (example):
+def parse_fn(example):
     example_features = {
-        'feature' : tf.FixedLenFeature([], tf.string),
-        'value' : tf.FixedLenFeature([1], tf.float32),
-        'pi_value' : tf.VarLenFeature(tf.float32),
-        'pi_index' : tf.VarLenFeature(tf.int64)
+        'feature': tf.FixedLenFeature([], tf.string),
+        'value': tf.FixedLenFeature([1], tf.float32),
+        'pi_value': tf.VarLenFeature(tf.float32),
+        'pi_index': tf.VarLenFeature(tf.int64)
     }
 
     example = tf.parse_single_example(example, features=example_features)
@@ -60,16 +55,16 @@ def parse_fn (example):
     image = tf.reshape(image, config.input_shape, name='image_reshaped')
 
     pi_value = tf.sparse_tensor_to_dense(example['pi_value'])
-    pi_index= tf.sparse_tensor_to_dense(example['pi_index'])
+    pi_index = tf.sparse_tensor_to_dense(example['pi_index'])
 
-    policy = tf.sparse_to_dense (
+    policy = tf.sparse_to_dense(
         sparse_indices=pi_index,
         output_shape=[config.n_classes],
         sparse_values=pi_value,
         validate_indices=False
     )
 
-    legal_mask = tf.sparse_to_dense (
+    legal_mask = tf.sparse_to_dense(
         sparse_indices=pi_index,
         output_shape=[config.n_classes],
         sparse_values=tf.zeros_like(pi_value),
@@ -81,8 +76,9 @@ def parse_fn (example):
 
     return image, legal_mask, value, policy
 
-def dataset_input_fn (path, batch_size=32, num_epochs=1, buffer_size=2048):
-    def input_fn ():
+
+def dataset_input_fn(path, batch_size=32, num_epochs=1, buffer_size=2048):
+    def input_fn():
         dataset = tf.contrib.data.TFRecordDataset(path, compression_type='GZIP')
 
         dataset = dataset.map(parse_fn)
@@ -93,6 +89,6 @@ def dataset_input_fn (path, batch_size=32, num_epochs=1, buffer_size=2048):
         iterator = dataset.make_one_shot_iterator()
         image, legal_mask, value, policy = iterator.get_next()
 
-        return {'image' : image, 'legal_mask' : legal_mask}, {'value' : value, 'policy' : policy}
+        return {'image': image, 'legal_mask': legal_mask}, {'value': value, 'policy': policy}
 
     return input_fn

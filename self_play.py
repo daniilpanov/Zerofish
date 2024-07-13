@@ -1,11 +1,3 @@
-#! /usr/bin/env python2.7
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-from six.moves import xrange
-
 import datetime
 import os
 
@@ -23,7 +15,8 @@ import output_fn
 
 starting_position = '4k3/8/8/8/8/8/8/3QK3 w - - 0 1'
 
-def play_game (inference):
+
+def play_game(inference):
     # Initialize memory
     actions = []
     policies = []
@@ -47,7 +40,7 @@ def play_game (inference):
         san = map(state.state.san, map(state.parse_action, node.actions))
 
         for n, w, p, s in zip(N, W, P, san):
-            q = w/n
+            q = w / n
             print('{s}: n={n}, q={q}, p={p}'.format(n=n, q=q, p=p, s=s))
 
         # Calculate move probabilities and get action index
@@ -56,7 +49,7 @@ def play_game (inference):
 
         # Get action and update tree
         action = node.actions[index]
-        value = node.W[index]/node.N[index]
+        value = node.W[index] / node.N[index]
         move = tree.state.parse_action(action)
 
         print(tree.state.state.san(move), value)
@@ -78,7 +71,8 @@ def play_game (inference):
 
     return actions, policies, indices, outcome, winner
 
-def write_game_records (out_file, actions, policies, indices, outcome, winner):
+
+def write_game_records(out_file, actions, policies, indices, outcome, winner):
     # Create new state
     state = game_state.GameState(fen=starting_position)
     moves = []
@@ -101,7 +95,8 @@ def write_game_records (out_file, actions, policies, indices, outcome, winner):
 
     return moves
 
-def write_records (data_dir, name, actions, policies, indices, outcome, winner):
+
+def write_records(data_dir, name, actions, policies, indices, outcome, winner):
     # Make directory for data if needed
     dirs = data_dir
     if not os.path.exists(dirs):
@@ -119,7 +114,8 @@ def write_records (data_dir, name, actions, policies, indices, outcome, winner):
 
     return moves
 
-def write_pgn (pgn_dir, name, moves, outcome, winner):
+
+def write_pgn(pgn_dir, name, moves, outcome, winner):
     dirs = pgn_dir
     if not os.path.exists(dirs):
         print('making directories {}'.format(dirs))
@@ -141,24 +137,25 @@ def write_pgn (pgn_dir, name, moves, outcome, winner):
         print(' '.join(pgn), file=out_file)
     print('closed {}'.format(path))
 
-def main (FLAGS, _):
-    builder = model.ModelSpecBuilder (
+
+def main(FLAGS, _):
+    builder = model.ModelSpecBuilder(
         model_fn=model_fn.model_fn,
         model_dir=FLAGS.model_dir,
         config=model.cpu_config
     )
 
-    inference_spec = builder.build_inference_spec (
-        input_fn=input_fn.placeholder_input_fn (
+    inference_spec = builder.build_inference_spec(
+        input_fn=input_fn.placeholder_input_fn(
             feature_names=('image',),
             feature_shapes=(FLAGS.input_shape,),
             feature_dtypes=(tf.int8,),
         ),
 
         params={
-            'filters' : FLAGS.filters,
-            'modules' : FLAGS.modules,
-            'n_classes' : FLAGS.n_classes
+            'filters': FLAGS.filters,
+            'modules': FLAGS.modules,
+            'n_classes': FLAGS.n_classes
         }
     )
 
@@ -174,6 +171,7 @@ def main (FLAGS, _):
     write_pgn(FLAGS.pgn_dir, name, moves, outcome, winner)
 
     return 0
+
 
 if __name__ == '__main__':
     import config

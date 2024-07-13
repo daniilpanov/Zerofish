@@ -1,11 +1,3 @@
-#! /usr/bin/env python2.7
-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-from six.moves import xrange
-
 import glob
 
 import tensorflow as tf
@@ -14,14 +6,15 @@ import model
 import model_fn
 import input_fn
 
-def main (FLAGS, _):
-    builder = model.ModelSpecBuilder (
+
+def main(FLAGS, _):
+    builder = model.ModelSpecBuilder(
         model_fn=model_fn.model_fn,
         model_dir=FLAGS.model_dir
     )
 
-    training_spec = builder.build_training_spec (
-        input_fn=input_fn.dataset_input_fn (
+    training_spec = builder.build_training_spec(
+        input_fn=input_fn.dataset_input_fn(
             path=glob.glob(FLAGS.data_dir + '/*.tfrecords'),
 
             batch_size=FLAGS.batch_size,
@@ -30,12 +23,12 @@ def main (FLAGS, _):
         ),
 
         params={
-            'filters' : FLAGS.filters,
-            'modules' : FLAGS.modules,
-            'n_classes' : FLAGS.n_classes,
-            'optimizer' : FLAGS.optimizer,
-            'learning_rate' : FLAGS.learning_rate,
-            'l2_scale' : FLAGS.l2_scale
+            'filters': FLAGS.filters,
+            'modules': FLAGS.modules,
+            'n_classes': FLAGS.n_classes,
+            'optimizer': FLAGS.optimizer,
+            'learning_rate': FLAGS.learning_rate,
+            'l2_scale': FLAGS.l2_scale
         }
     )
 
@@ -47,6 +40,7 @@ def main (FLAGS, _):
             print('loss = {}'.format(loss))
 
     return 0
+
 
 if __name__ == '__main__':
     import config
